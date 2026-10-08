@@ -1,6 +1,6 @@
 # Summary verification trail
 
-**Verified:** 2026-10-08 by code inspection (tests were not run).
+**Verified:** 2026-10-08 by code inspection and Docker Compose execution.
 
 - ✅ Frontend uses React, TypeScript, and Vite; backend uses FastAPI (`frontend/package.json`, `backend/app/main.py`).
 - ✅ `frontend/src/App.tsx` requests `/api/metrics`; the Vite proxy forwards `/api` to `http://backend:8000` (`frontend/vite.config.ts`).
@@ -9,7 +9,9 @@
 - ✅ Additional analytical endpoints are implemented, while the current dashboard requests only `/api/metrics` (`backend/app/routes.py`, `frontend/src/App.tsx`).
 - ✅ `docker compose up --build` and frontend/backend URLs (ports 5173/8000) are documented/configured (`README.md`, `docker-compose.yml`).
 - ❌ The header label `2024 - Full Year` represents the API data range. It is hard-coded in `frontend/src/App.tsx`; backend movement dates are generated relative to the current date, so the label does not establish the returned data's date range.
-- ❓ Whether the application builds, tests pass, or the services run successfully: not verified by executing commands.
+- ✅ `docker compose up --build -d` built and started both services successfully.
+- ✅ `docker compose exec backend pytest`: 16 passed, 1 warning (Starlette deprecation warning about using `httpx` with `starlette.testclient`).
+- ✅ `docker compose exec frontend npm test`: 1 test file passed, 6 tests passed.
 
 ## Manual check
 
