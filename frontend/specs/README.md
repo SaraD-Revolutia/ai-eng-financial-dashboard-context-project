@@ -19,12 +19,13 @@ Shared TypeScript request and response models are defined in [`param-types.ts`](
 | `/api/metrics` | `start_date` | `ApiDate` (`string`) | Optional date in `YYYY-MM-DD`; selected date must be within the returned `min_date`–`max_date` range. | Omitted means no lower date bound at the API level; feature requests should send the selected lower bound. |
 | `/api/metrics` | `end_date` | `ApiDate` (`string`) | Optional date in `YYYY-MM-DD`; selected date must be within the returned `min_date`–`max_date` range and must not precede `start_date`. | Omitted means no upper date bound at the API level; feature requests should send the selected upper bound. |
 
-The UI initializes the selection to the full facet range and applies both dates inclusively. `DateRangeFilter` properties are optional to represent intermediate editing, but Apply requires both dates. Do not hard-code bounds or send invalid/reversed ranges.
+Both date inputs are optional and initialize empty. Apply only populated dates inclusively: start only filters from that date through the latest data, end only filters from the earliest data through that date, and both empty sends no date parameters and shows all data. Reject only the case where both are populated and `start_date` is later than `end_date`; keep selected dates within the facet bounds.
 
 ### Edge cases and required UI
 
 - **Facet request is loading or fails:** do not display guessed date bounds or enable Apply. Show a loading state; on failure show a clear error and retry action.
-- **End date precedes start date (or either date is outside facet bounds):** show inline validation, prevent Apply, and do not send `/api/metrics` with the invalid selection.
+- **Only one date is populated, or both are empty:** these are valid selections. Send only the populated parameter, or neither when both are empty; show all data in the latter case.
+- **Both dates are populated and start follows end (or a populated date is outside facet bounds):** show inline validation, prevent Apply, and do not send `/api/metrics` with the invalid selection.
 - **Valid range returns no movements:** show the dashboard's explicit empty-data state; do not fabricate a movement or conflate empty data with a request error. KPIs/charts must use only the returned movement array.
 
 ## 2. Anomaly alerts table
@@ -73,6 +74,7 @@ The UI initializes the selection to the full facet range and applies both dates 
 
 - **One request fails while the other succeeds:** show a comparison error state and retry both requests; do not show a successful-looking partial comparison.
 - **Both requests succeed with empty arrays:** show exactly **“No category data available for the current filters.”** Do not infer categories or amounts.
+- **Only one business-type response is empty:** show **“No income categories for this period.”** in that empty panel and continue rendering the other panel's returned top-five data.
 - **A category appears in only one response:** retain the category row and show `0` for its missing segment, as specified in `components.md`. Keep the B2B and B2C labels explicit. If both requests are pending, show loading until both complete.
 
 ## Related specifications

@@ -16,21 +16,21 @@ This document proposes frontend components for the three dashboard features. The
 **Responsibilities**
 
 - Render start and end date controls using the facet response's `min_date` and `max_date` as limits.
-- Initialize to the full available range. Keep date-only strings in `YYYY-MM-DD` form, and reject a reversed or incomplete range before applying it.
-- Report an applied range to the dashboard container; the container requests `/api/metrics?start_date=...&end_date=...` and refreshes KPIs/charts.
+- Initialize both optional controls empty. Keep populated date-only strings in `YYYY-MM-DD` form. Reject a range only when both dates are populated and the start is later than the end; a single populated date and both empty are valid.
+- Report the applied optional filters to the dashboard container. Send only populated query parameters: start only filters through the latest data, end only filters from the earliest data, and neither means all data. Refresh KPIs/charts from the response.
 
 **Suggested props**
 
 - `facets`: `FacetsResponse`; read `min_date` and `max_date` for bounds.
-- `value`: `DateRangeFilter`; while editing, either date may be absent, but Apply requires both.
-- `onApply(range: DateRangeFilter)`: callback with both `start_date` and `end_date` populated.
+- `value`: `DateRangeFilter`; either date may be absent, including both.
+- `onApply(range: DateRangeFilter)`: callback with either, both, or neither date populated according to the applied filters.
 - `disabled`: `boolean`; true until facets are loaded or while applying a range.
 
 **States**
 
 - Loading while `/api/metrics/facets` is unresolved; do not present guessed date bounds.
 - Error if facets cannot load, with a retry path owned by the container.
-- Validation if either date is missing, if the end precedes the start, or if either date is outside `facets.min_date`–`facets.max_date`.
+- Inline validation if both dates are populated and `start_date` is later than `end_date`, or if a populated date is outside `facets.min_date`–`facets.max_date`. Do not send a request for an invalid reversed range. A single date or two empty dates are valid.
 
 ## 2. Anomaly alerts table
 
@@ -91,6 +91,7 @@ This document proposes frontend components for the three dashboard features. The
 - Show loading until both requests complete.
 - Show an error state if either request fails; never present the remaining response as a complete comparison.
 - If both responses are empty, show exactly **“No category data available for the current filters.”** If only one segment lacks a category, show zero for that segment. An error response is not treated as empty data.
+- Handle panel emptiness independently: if B2B's top-five response is empty, show **“No income categories for this period.”** in the B2B panel while still rendering B2C's returned data; apply the same behavior independently when B2C is empty. If both responses are empty, show the combined empty state above in both panels (or as the shared comparison empty state) rather than duplicating per-panel empty messages.
 - Label the segment columns B2B and B2C and the value columns as income totals.
 
 ## Existing dashboard integration

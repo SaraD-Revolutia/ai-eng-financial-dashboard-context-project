@@ -15,11 +15,7 @@ The response fields are:
 | Field | Type | UI use |
 |---|---|---|
 | `period` | `string` | Display as the period label. It is not guaranteed to be a full date. |
-| `outcoConfirm that npx tsc --noEmit actually type-checks
-frontend/specs/api-types.ts and frontend/specs/param-types.ts. If the
-tsconfig only includes src/, run tsc directly on those two files
-(strict mode) and show me the result. Fix any type errors without
-touching React components or API calls.me_total` | `number` | Display as a currency amount. |
+| `outcome_total` | `number` | Display as a currency amount. |
 | `baseline_average` | `number` | Display as a currency amount under the heading **Baseline average**. |
 | `increase_ratio` | `number` | Display as a percentage by multiplying by 100; retain the raw ratio for logic. |
 

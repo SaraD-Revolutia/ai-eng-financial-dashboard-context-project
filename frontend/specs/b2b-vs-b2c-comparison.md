@@ -1,41 +1,41 @@
-# B2B vs B2C comparison
+# B2B vs B2C category comparison
 
 ## Goal
 
-Allow dashboard users to compare financial movements and derived KPI values for B2B and B2C over the same selected date range.
+Compare the five highest-income categories for B2B and B2C over the same optional date filters. This feature presents category rankings from the top-categories endpoint; it does not calculate or display movement-level metrics or adjacent-period deltas.
 
-## API contract (verified in `/docs`)
+## API contract and types
 
-The API exposes separate movement endpoints:
+Call `GET /api/metrics/categories/top` twice. Each request uses [`TopCategoriesParams`](./param-types.ts) and returns [`TopCategoriesResponse`](./api-types.ts), an array of [`CategoryEntry`](./api-types.ts) values containing `category`, `operation_type`, and `total_amount`.
 
-- `GET /api/metrics/b2b`
-- `GET /api/metrics/b2c`
+Both requests use `operation_type: "income"` and `limit: 5`. The first uses `business_type: "B2B"`; the second uses `business_type: "B2C"`. Apply the same optional date filters to both requests: include `start_date` and/or `end_date` only when populated, and omit either absent date. A single date is valid; with neither date, request all available data. If both dates are populated and start is after end, show inline validation and issue neither request.
 
-Each accepts optional `start_date` and `end_date` dates (`YYYY-MM-DD`), `category` (`suppliers`, `sales`, `operational`, `administrative`, or `others`), and `operation_type` (`income` or `outcome`). Each returns an array of `FinancialMovement` objects with `create_date`, `amount`, `operation_type`, `category`, and `business_type`.
+Example request shapes (include only populated dates):
 
-There is also `GET /api/metrics/comparison`, which requires `start_date` and `end_date` and optionally accepts `business_type` (`B2B` or `B2C`). It returns one comparison object with `current_period`, `previous_period`, `delta_abs`, and nullable `delta_pct`. The API definition does not describe this endpoint as a direct B2B-versus-B2C comparison: its implementation computes a net value for the requested current date range versus the immediately preceding equal-length range, optionally filtered to one business type.
-
-The current dashboard only fetches `/api/metrics` without query parameters (`frontend/src/App.tsx`).
+```text
+GET /api/metrics/categories/top?operation_type=income&limit=5&business_type=B2B
+GET /api/metrics/categories/top?operation_type=income&limit=5&business_type=B2C
+```
 
 ## Behavior
 
-1. For a direct B2B-versus-B2C comparison, request `/api/metrics/b2b` and `/api/metrics/b2c` with the same selected date range and the same optional category/operation filters.
-2. Calculate the existing dashboard metrics independently from each response set; label each result explicitly as B2B or B2C. Compare like-for-like values over identical filters and dates.
-3. Preserve the movement-level `business_type` in API data, but do not infer comparison dimensions from a response field that is not a comparison metric.
-4. Handle the two requests as a comparison pair: show a loading state while either request is pending, and do not present a partial result as a complete comparison if either request fails.
-5. For empty data in one segment, show that segment as having no records for the selected filters rather than substituting data from the other segment.
+1. Treat the two requests as one comparison pair. Show loading until both responses complete. If either request fails, show an error and retry both; do not present a partial response as a complete comparison.
+2. Keep B2B and B2C panels independently labeled and render each successful response's category ranking and income totals. Do not calculate additional movement metrics or expect comparison/delta fields from the API.
+3. If one response is empty, show exactly **“No income categories for this period.”** in that panel and continue rendering the other panel's returned data.
+4. If both responses are empty, show exactly **“No category data available for the current filters.”** as the shared comparison empty state rather than showing per-panel messages.
+5. Preserve the API's returned categories and totals; do not infer categories or amounts absent from a response.
 
 ## PM wording / API mismatch resolution
 
-- **“B2B vs B2C comparison” versus `/api/metrics/comparison`:** the similarly named endpoint compares the selected period with the previous equal-length period and optionally filters to one business type; it does not return B2B and B2C side by side. For the requested feature, use the two business-specific movement endpoints and calculate the existing comparable dashboard metrics from their responses. Do not use `/api/metrics/comparison` as the B2B/B2C data source.
-- **No comparison-specific response model:** `/api/metrics/b2b` and `/api/metrics/b2c` return movement arrays, not aggregate totals/deltas. Aggregate in the frontend using the existing financial calculation utilities; do not expect fields such as `b2b_total`, `b2c_total`, or a direct difference from the API.
-- **Business-type field versus endpoint identity:** both response objects include `business_type`. The endpoint provides segment scoping; use the explicit B2B/B2C labels in the UI and retain/validate response fields rather than adding another API contract assumption.
-- The backend already exposes the required segment routes. The existing frontend does not call them; wiring both endpoints is in scope, while adding or changing backend routes is not.
+- **B2B vs B2C feature definition:** this feature compares the top income categories returned by the same endpoint for two business-type filters. It is not a comparison of financial movement arrays or an adjacent-period analysis.
+- **No comparison-specific response model:** each response is a `CategoryEntry[]`; the endpoint provides no B2B/B2C aggregate or delta fields. Display each segment's returned category totals as-is.
+- **Shared date filter:** date fields are optional and are identical across the pair when populated. A start-only or end-only filter is valid; no dates means all data. A reversed fully populated range blocks both requests.
+- **Existing dashboard:** the current dashboard does not call this endpoint. Implementing the feature is in scope; changing the backend contract is not.
 
 ## Acceptance criteria
 
-- The feature fetches both business-specific endpoints with identical dates and active optional filters.
-- B2B and B2C values are independently derived from their respective movement arrays and clearly labeled.
-- A result from `/api/metrics/comparison` is not presented as a B2B-versus-B2C comparison.
-- A failure from either segment request prevents presenting the pair as complete; empty segment data is handled explicitly.
-- No new aggregate response fields or backend endpoint changes are assumed.
+- The feature issues two `GET /api/metrics/categories/top` requests with `operation_type=income` and `limit=5`, differing only in `business_type` (`B2B` versus `B2C`) and using the same optional date filters.
+- A one-sided date filter is valid, missing date parameters are omitted, and an invalid reversed two-date range causes neither request to be sent.
+- Loading and errors apply to the pair; failure of either request prevents showing a complete-looking comparison and retry repeats both requests.
+- An individually empty panel shows **“No income categories for this period.”** while the nonempty panel remains rendered. If both are empty, show **“No category data available for the current filters.”**
+- The UI displays the API category entries and income totals without assuming unsupported aggregate or delta fields.
