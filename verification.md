@@ -17,3 +17,13 @@
 
 - ✅ Manually verified by opening `frontend/src/App.tsx`: it requests `/api/metrics`.
 - ✅ Manually verified by opening `docker-compose.yml`: ports `5173` and `8000` appear in the service configuration.
+
+## Feature specs verification trail
+
+**Verified:** 2026-10-10 against the running FastAPI `/docs` (OpenAPI schema) and frontend fetch code.
+
+- ✅ Added `frontend/specs/date-range-filter.md`, `frontend/specs/anomaly-alerts-table.md`, and `frontend/specs/b2b-vs-b2c-comparison.md` based on documented endpoint contracts.
+- ✅ Cross-checked frontend fetch usage: `App.tsx` currently fetches `/api/metrics` without query parameters; it does not yet fetch facets, alerts, or B2B/B2C routes.
+- ✅ Specs call out API/PM mismatches without assuming backend changes: facets use `min_date`/`max_date`; alert `baseline_average` calculation is undocumented; `/api/metrics/comparison` compares adjacent periods, not B2B against B2C.
+- ✅ For the alert table, documented the approved UI threshold range (`0.01`–`1.0`), empty-input fallback (`0.3`), exact empty-state copy, and exclusion of `group_by`/`business_type` controls.
+- ℹ️ Documentation-only change; application tests were not run.
